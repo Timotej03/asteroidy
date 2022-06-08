@@ -23,18 +23,14 @@ pressed_keyboards = set()  # MNOŽINA ZMAČKNUTÝCH KLÁVES
 delay_shooting = 0.4
 laserlifetime = 45
 laserspeed = 200
-
+lifes = 3
 # skore counter
 score = 0
-
-
-# funkcie
 
 # vycentrovanie obrazka na stred
 def set_anchor_of_image_to_center(img):
     img.anchor_x = img.width // 2
     img.anchor_y = img.height // 2
-
 
 # vykreslenie kolizneho kolecka, budeme neskor odstranovat
 def draw_circle(x, y, radius):
@@ -50,9 +46,6 @@ def draw_circle(x, y, radius):
         gl.glVertex2f(x + dx, y + dy)
         dx, dy = (dx * c - dy * s), (dy * c + dx * s)
     gl.glEnd()
-
-
-# triedy hry
 
 # hlavna trieda pre vsetky objekty
 
@@ -205,8 +198,10 @@ class Spaceship(SpaceObject):
 class Asteroid(SpaceObject):
     # metoda pri kolizi lode a asteroidu
     def hit_by_spaceship(self, ship):
+        global lifes
         pressed_keyboards.clear()
         ship.reset()
+        lifes -= 1
         self.delete()
 
     # metoda pri kolizi asteroidu a laseru
@@ -247,6 +242,11 @@ class Game:
     def __init__(self):
         self.window = None
         game_objects = []
+        space_lifes = pyglet.image.load(r'Assetss\PNG\UI\playerLife1_blue.png')
+        set_anchor_of_image_to_center(space_lifes)
+        self.ship_lifes = pyglet.sprite.Sprite(space_lifes, batch=batch)
+        self.ship_lifes.visible = False
+        self.over = False
 
     # nacitanie obrazkov hry
     def load_resources(self):
@@ -295,9 +295,23 @@ class Game:
             asteroid = Asteroid(img, position[0], position[1], tmp_speed_x, tmp_speed_y)
             game_objects.append(asteroid)
 
+    def lifes_draw(self):
+        sirka = 20
+        for i in range(lifes):
+            ship_lifes = pyglet.image.load(r'Assetss\PNG\UI\playerLife1_blue.png')
+            ship_life = pyglet.sprite.Sprite(ship_lifes, sirka, 20)
+            ship_life.draw()
+            sirka += 40
+
+    def game_stat_control(self):
+        if lifes == 0:
+            if self.over == False:
+                self.over = True
+                self.game_over()
+
     # metoda ktora sa vola n a "on_draw" stale a vykresluje vsetko v hre
     def draw_game(self):
-        global score, scoreLabel
+        global score, scoreLabel, lifes
         # Vymaže aktualny obsah okna
         self.window.clear()
         # Vykreslenie pozadia
@@ -324,6 +338,9 @@ class Game:
                 # Restore remembered state (this cancels the glTranslatef)
                 gl.glPopMatrix()
 
+        self.lifes_draw()
+        self.game_stat_control()
+        
     # spracovanie klavesovych zmacknuti
     def key_press(self, symbol, modifikatory):
         if symbol == key.W:
