@@ -1,4 +1,5 @@
-# importy kniznic
+## importy kniznic
+from email.header import Header
 import math
 import random
 
@@ -18,11 +19,12 @@ ROTATION_SPEED = 0.05  # Rýchlosť otáčania rakety
 
 game_objects = []
 batch = pyglet.graphics.Batch()  # ZOZNAM SPRITOV PRE ZJEDNODUŠENÉ VYKRESLENIE
-pressed_keyboards = set()  # MNOŽINA ZMAČKNUTÝCH KLÁVES
+pressed_keyboards = set()  # MNOŽINA ZMAČKNUTÝCH KLÁVES      
 
 delay_shooting = 0.4
 laserlifetime = 45
 laserspeed = 200
+laser_time = delay_shooting
 lifes = 3
 # skore counter
 score = 0
@@ -45,6 +47,14 @@ def draw_circle(x, y, radius):
     for i in range(iterations + 1):
         gl.glVertex2f(x + dx, y + dy)
         dx, dy = (dx * c - dy * s), (dy * c + dx * s)
+    gl.glEnd()
+
+def vykresli_obdlznik(x1,y1,x2,y2):
+    gl.glBegin(gl.GL_TRIANGLE_FAN)  
+    gl.glVertex2f(int(x1), int(y1))  
+    gl.glVertex2f(int(x1), int(y2))  
+    gl.glVertex2f(int(x2), int(y2))  
+    gl.glVertex2f(int(x2), int(y1))  
     gl.glEnd()
 
 # hlavna trieda pre vsetky objekty
@@ -119,8 +129,13 @@ class Spaceship(SpaceObject):
         self.flame = pyglet.sprite.Sprite(flame_sprite, batch=batch)
         self.flame.visible = False
 
+        self.reloading = False
+
+
+
     # metoda vystrelenia laseru
     def shoot(self):
+        global laser_time
         img = pyglet.image.load("Assetss/PNG/Lasers/laserBlue04.png")
         set_anchor_of_image_to_center(img)
 
@@ -132,8 +147,11 @@ class Spaceship(SpaceObject):
 
         game_objects.append(laser)
 
+        laser_time = delay_shooting
+
     # vykona sa metoda tick 60x za sekundu
     def tick(self, dt):
+        global laser_time
         super().tick(dt)
 
         # zrychlenie podla konstant pri zmacknuti W
@@ -173,6 +191,8 @@ class Spaceship(SpaceObject):
             self.shoot()
             self.laser_ready = False
             pyglet.clock.schedule_once(self.reload, delay_shooting)
+            self.laser_time = delay_shooting
+            self.reloading = True
 
         # vyberie vsetky objekty okrem seba
         for obj in [o for o in game_objects if o != self]:
@@ -181,6 +201,10 @@ class Spaceship(SpaceObject):
             if d < self.radius + obj.radius:
                 obj.hit_by_spaceship(self)
                 break
+        if self.reloading:
+            laser_time -= dt
+            if laser_time <= 0:
+                self.reloading = False
 
     # metoda zodpovedna za reset pozicie
     def reset(self):
@@ -340,7 +364,9 @@ class Game:
 
         self.lifes_draw()
         self.game_stat_control()
-        
+        gl.glColor3f(0.2,0.6,0.2)
+        vykresli_obdlznik(50, HEIGHT - 80, 200 - (laser_time*(150//delay_shooting)), HEIGHT - 50)
+
     # spracovanie klavesovych zmacknuti
     def key_press(self, symbol, modifikatory):
         if symbol == key.W:
@@ -401,4 +427,4 @@ class Game:
 
 
 # zaciatok hry
-Game().start()
+Game().start() 
